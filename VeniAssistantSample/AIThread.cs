@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+﻿using System.Text.Json;
 
 namespace VeniAssistantSample;
 
@@ -13,7 +7,7 @@ internal class AIThread
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
 
-    public string ID {  get; private set; }
+    public string ID { get; private set; }
     public ThreadData? Data { get; private set; }
 
     public AIThread(HttpClient httpClient, string apiKey)
@@ -42,9 +36,9 @@ internal class AIThread
 
         var response = await _httpClient.SendAsync(request);
         string responseContent = await response.Content.ReadAsStringAsync();
-        
-        var jsonDocument = JObject.Parse(responseContent);
-        ID = (string?)jsonDocument.GetValue("id") ?? "";
+
+        var jsonDocument = JsonSerializer.Serialize(responseContent);
+        //ID = (string?)jsonDocument.GetValue("id") ?? "";
 
         response.EnsureSuccessStatusCode();
     }
@@ -73,7 +67,7 @@ internal class AIThread
     {
         string requestBody = @"
         {
-            ""assistant_id"": """ + assistant.ID +  @""",
+            ""assistant_id"": """ + assistant.ID + @""",
             ""instructions"": """"
         }";
 
@@ -86,10 +80,11 @@ internal class AIThread
 
         var response = await _httpClient.SendAsync(request);
         var responseContent = await response.Content.ReadAsStringAsync();
-        var jsonDocument = JObject.Parse(responseContent);
-        string runID = (string?)jsonDocument.GetValue("id") ?? "";
+        //var jsonDocument = JObject.Parse(responseContent);
+        //string runID = (string?)jsonDocument.GetValue("id") ?? "";
 
-        return runID;
+        //return runID;
+        return "";
     }
 
     public async Task<string> PollRunResult(string runID)
@@ -103,10 +98,11 @@ internal class AIThread
 
         var response = await _httpClient.SendAsync(request);
         var responseContent = await response.Content.ReadAsStringAsync();
-        var jsonDocument = JObject.Parse(responseContent);
-        string status = (string?)jsonDocument.GetValue("status") ?? "";
+        //var jsonDocument = JObject.Parse(responseContent);
+        //string status = (string?)jsonDocument.GetValue("status") ?? "";
 
-        return status;
+        //return status;
+        return "";
     }
 
     public async Task GetMessagesAsync()
@@ -125,14 +121,14 @@ internal class AIThread
 
     private void AssigntThreadData(string jsonString)
     {
-        var jsonDocument = JObject.Parse(jsonString);
-        Data = new ThreadData
-        {
-            Object = (string?)jsonDocument.GetValue("object") ?? "",
-            Data = jsonDocument["data"].ToObject<List<Message>>() ?? new List<Message>(),
-            FirstId = (string?)jsonDocument.GetValue("first_id") ?? "",
-            LastId = (string?)jsonDocument.GetValue("last_id") ?? "",
-            HasMore = (bool?)jsonDocument.GetValue("has_more") ?? false
-        };
+        //var jsonDocument = JObject.Parse(jsonString);
+        //Data = new ThreadData
+        //{
+        //    Object = (string?)jsonDocument.GetValue("object") ?? "",
+        //    Data = jsonDocument["data"].ToObject<List<Message>>() ?? new List<Message>(),
+        //    FirstId = (string?)jsonDocument.GetValue("first_id") ?? "",
+        //    LastId = (string?)jsonDocument.GetValue("last_id") ?? "",
+        //    HasMore = (bool?)jsonDocument.GetValue("has_more") ?? false
+        //};
     }
 }

@@ -13,7 +13,7 @@ internal class RequestBuilder
 
     public RequestBuilder()
     {
-        _httpRequestMessage.Headers.Add("OpenAI-Beta", "assistants=v1");
+        _httpRequestMessage.Headers.Add("OpenAI-Beta", "assistants=v2");
     }
     public RequestBuilder WithMethod(HttpMethod method)
     {

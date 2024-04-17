@@ -1,38 +1,36 @@
-﻿
-using Microsoft.Extensions.Configuration;
-using VeniAssistantSample;
+﻿using Microsoft.Extensions.Configuration;
 
+namespace VeniAssistantSample;
 public class Program
 {
     public static async Task Main(string[] args)
     {
         var configBuilder = new ConfigurationBuilder()
-            .AddUserSecrets<Program>();
+        .AddUserSecrets<Program>();
         var config = configBuilder.Build();
-
-        var httpClient = new HttpClient();
+        using var httpClient = new HttpClient();
         var apiKey = config["OpenAiApiKey"] ?? "";
+        
+        var assistant = await AIAssistant.GetVeniKiOrCreateNew(httpClient, apiKey);
+        
+        //await assistant.CreateAssistant();
 
-        var assistant = new AIAssistant(httpClient, apiKey);
+        //var thread = new AIThread(httpClient, apiKey);
+        //await thread.Create();
 
-        await assistant.CreateAssistant();
+        //string input;
+        //Console.Write("> ");
+        //while ((input = Console.ReadLine()) != "exit")
+        //{
+        //    await thread.AddMessageAsync(input);
+        //    string runID = await thread.RunAsync(assistant);
+        //    while (await thread.PollRunResult(runID) != "completed")
+        //        Thread.Sleep(500);
 
-        var thread = new AIThread(httpClient, apiKey);
-        await thread.Create();
+        //    await thread.GetMessagesAsync();
+        //    Console.WriteLine(thread.Data.Data[0].Content[0].Text.Value);
 
-        string input;
-        Console.Write("> ");
-        while ((input = Console.ReadLine()) != "exit")
-        {
-            await thread.AddMessageAsync(input);
-            string runID = await thread.RunAsync(assistant);
-            while (await thread.PollRunResult(runID) != "completed")
-                Thread.Sleep(500);
-
-            await thread.GetMessagesAsync();
-            Console.WriteLine(thread.Data.Data[0].Content[0].Text.Value);
-            
-            Console.Write("> ");
-        }
+        //    Console.Write("> ");
+        //}
     }
 }
