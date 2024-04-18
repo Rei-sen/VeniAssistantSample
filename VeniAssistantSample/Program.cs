@@ -16,7 +16,7 @@ public class Program
 
         var thread = await AIThread.CreateAsync(httpClient, apiKey);
         Console.WriteLine("Enter 'exit' to quit");
-        var run = await thread.CreateRunAsync(httpClient, apiKey, assistant);
+        var run = await thread.CreateRunAsync(httpClient, apiKey, assistant, "Give a very brief introduction of yourself to the user.");
         do
         {
             var status = await thread.RetrieveRunAsync(httpClient, apiKey, run.ID);
@@ -46,7 +46,28 @@ public class Program
                 var status = await thread.RetrieveRunAsync(httpClient, apiKey, run.ID);
                 if (status.Status == "requires_action")
                 {
-                    Console.WriteLine(JsonSerializer.Serialize(status));
+                    var outputs = new List<ToolOutput>();
+                    foreach (var toolCall in status.RequiredActionObject.SubmitToolOutputsObject.ToolCalls)
+                    {
+                        Console.WriteLine($"{toolCall.Parameters.Name} call!: {toolCall.Parameters.Arguments}!");
+                        var query = JsonSerializer.Deserialize<VenuesAPIQueryParameters>(toolCall.Parameters.Arguments);
+                        if (query is not null)
+                        {
+                            var request = new HttpRequestMessage
+                            {
+                                Method = HttpMethod.Get,
+                                RequestUri = new Uri($"https://api.ffxivvenues.dev/Venue?{Utilities.GETQuery.SerializeObjectToQueryString(query)}"),
+                            };
+                            var response = await httpClient.SendAsync(request);
+                            var responseContent = await response.Content.ReadAsStringAsync();
+                            outputs.Add(new ToolOutput
+                            {
+                                ToolCallId = toolCall.ID,
+                                Output = responseContent,
+                            }); 
+                        }
+                    }
+                    await run.SubmitToolOutputs(httpClient, apiKey, outputs);
                 }
                 else if (status.Status == "completed")
                 {

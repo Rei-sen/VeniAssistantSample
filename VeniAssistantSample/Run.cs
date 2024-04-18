@@ -1,17 +1,44 @@
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace VeniAssistantSample.Models;
 
 public class Run
 {
-    public class Tool
+    public class FunctionCall
     {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+        [JsonPropertyName("arguments")]
+        public string Arguments { get; set; }
+    }
+    public class ToolCall
+    {
+        [JsonPropertyName("id")]
+        public string ID { get; set; }
         [JsonPropertyName("type")]
-        public string Type { get; set; }
+        public string Type { get; set; } = "function";
 
+        [JsonPropertyName("function")]
+        public FunctionCall Parameters { get; set; }
     }
 
+    public class SubmitToolOutputsType
+    {
+        [JsonPropertyName("tool_calls")]
+        public List<ToolCall> ToolCalls { get; set; } = new();
+    }
+
+    public class RequiredAction
+    {
+
+       [JsonPropertyName("type")]
+        public string Type { get; set; }
+
+        [JsonPropertyName("submit_tool_outputs")]
+        public SubmitToolOutputsType SubmitToolOutputsObject { get; set; }
+    }
     public class IncompleteDetailsInfo
     {
         [JsonPropertyName("reason")]
@@ -56,6 +83,8 @@ public class Run
 
     [JsonPropertyName("status")]
     public required string Status { get; set; }
+    [JsonPropertyName("required_action")]
+    public RequiredAction? RequiredActionObject { get; set; }
 
     [JsonPropertyName("started_at")]
     public ulong? StartedAt { get; set; }
@@ -81,8 +110,8 @@ public class Run
     [JsonPropertyName("instructions")]
     public required string Instructions { get; set; }
 
-    [JsonPropertyName("tools")]
-    public required List<Tool> Tools { get; set; }
+    //[JsonPropertyName("tools")]
+    //public required List<Tool> Tools { get; set; }
 
     [JsonPropertyName("metadata")]
     public required Dictionary<string, object> Metadata { get; set; }
@@ -113,6 +142,26 @@ public class Run
 
     [JsonPropertyName("tool_choice")]
     public required string ToolChoice { get; set; }
+
+    public async Task SubmitToolOutputs(HttpClient httpClient, string apiKey, List<ToolOutput> toolOutputs)
+    {
+        var requestBody = new
+        {
+            tool_outputs = toolOutputs,
+            stream = false
+        };
+        var request = new RequestBuilder()
+            .WithMethod(HttpMethod.Post)
+            .WithApiKey(apiKey)
+            .WithURL($"threads/{ThreadID}/runs/{ID}/submit_tool_outputs")
+            .WithContent(JsonSerializer.Serialize(requestBody))
+            .Build();
+        var response = await httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception("Failed to submit tool outputs");
+        }
+    }
 }
 
 

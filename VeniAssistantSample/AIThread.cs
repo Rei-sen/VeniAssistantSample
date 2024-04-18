@@ -147,14 +147,15 @@ internal class AIThread
         } while (hasMore);
     }
 
-    public async Task<Run> CreateRunAsync(HttpClient httpClient, string apiKey, AIAssistant assistant)
+    public async Task<Run> CreateRunAsync(HttpClient httpClient, string apiKey, AIAssistant assistant, string additionalInstructions = "")
     {
         if (assistant.ID is null)
             throw new Exception("Assistant ID is required");
 
         var requestBody = new RunCreateRequest
         {
-            AssistantID = assistant.ID
+            AssistantID = assistant.ID,
+            AdditionalInstructions = additionalInstructions
         };
 
         var request = new RequestBuilder()

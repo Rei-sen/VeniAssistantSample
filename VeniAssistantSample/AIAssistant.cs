@@ -193,7 +193,7 @@ public class AIAssistant
                 "Those who talk to Veni (you) are users looking for venues to visit. " +
                 "For any questions, contact Kana (can @ me with <@236852510688542720>)")
             .WithTool(new QueryFunction() {})
-            .WithTemperature(1.0)
+            .WithTemperature(1.6)
             .WithResponseFormat("auto")
             .Build();
     }
