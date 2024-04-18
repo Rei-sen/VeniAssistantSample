@@ -13,7 +13,7 @@ internal record AssistantListResponse
     [JsonPropertyName("object")]
     public required string ObjectName { get; set; } = "assistant";
     [JsonPropertyName("data")]
-    public required List<AssistantObject> Data { get; set; } 
+    public required List<AIAssistant> Data { get; set; } 
     [JsonPropertyName("first_id")]
     public required string FirstID { get; set; }
     [JsonPropertyName("last_id")]

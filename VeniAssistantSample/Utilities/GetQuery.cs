@@ -16,12 +16,11 @@ internal class GETQuery
 
         foreach (var property in properties)
         {
-            if (property.GetValue(obj) == null)
-            {
-                continue;
-            }
+            
             var propertyName = property.Name;
             var propertyValue = property.GetValue(obj)?.ToString();
+            if (propertyValue is null)
+                continue;
 
             var encodedName = Uri.EscapeDataString(propertyName);
             var encodedValue = Uri.EscapeDataString(propertyValue);

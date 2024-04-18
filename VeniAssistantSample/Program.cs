@@ -18,6 +18,7 @@ public class Program
         while ((await thread.RetrieveRunAsync(httpClient, apiKey, run.ID)).Status != "completed")
             Thread.Sleep(250);
         var messages = await thread.ListMessagesAsync(httpClient, apiKey).ToListAsync();
+
         Console.WriteLine(messages[0].Content[0].Text.Value);
         do
         {

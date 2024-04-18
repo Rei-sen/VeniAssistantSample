@@ -1,15 +1,45 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using VeniAssistantSample.Models;
 
 namespace VeniAssistantSample;
 public class AIAssistant
 {
-    public AssistantObject Model { get; set; }
+    [JsonPropertyName("id")]
+    public string? ID { get; set; }
+    [JsonPropertyName("object")]
+    public string? ObjectName { get; set; } = "assistant";
+    [JsonPropertyName("created_at")]
+    public ulong? CreatedAt { get; set; }
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+    [JsonPropertyName("model")]
+    public string Model { get; set; } = "gpt-4";
+    [JsonPropertyName("instructions")]
+    public string? Instructions { get; set; }
+    [JsonPropertyName("temperature")]
+    public double? Temperature { get; set; }
+    [JsonPropertyName("top_p")]
+    public double? TopP { get; set; }
+    [JsonPropertyName("response_format")]
+    public string? ResponseFormat { get; set; }
 
-    public AIAssistant(AssistantObject createResult)
+    private void AssignParameters(AIAssistant assistant)
     {
-        Model = createResult;
+        ID = assistant.ID;
+        ObjectName = assistant.ObjectName;
+        CreatedAt = assistant.CreatedAt;
+        Name = assistant.Name;
+        Description = assistant.Description;
+        Model = assistant.Model;
+        Instructions = assistant.Instructions;
+        Temperature = assistant.Temperature;
+        TopP = assistant.TopP;
+        ResponseFormat = assistant.ResponseFormat;
     }
+
 
     public static async IAsyncEnumerable<AIAssistant> ListAssistantsAsync(HttpClient client, string apiKey)
     {
@@ -38,7 +68,7 @@ public class AIAssistant
 
             foreach (var assistant in result.Data)
             {
-                yield return new AIAssistant(assistant);
+                yield return assistant;
             }
 
             hasMore = result.HasMore;
@@ -59,13 +89,12 @@ public class AIAssistant
         var response = await client.SendAsync(request);
         if (response is null)
             return null;
+
         var responseContent = await response.Content.ReadAsStringAsync();
         if (responseContent is null)
             return null;
-        var result = JsonSerializer.Deserialize<AssistantObject>(responseContent);
-        if (result is null)
-            return null;
-        return new AIAssistant(result);
+
+        return JsonSerializer.Deserialize<AIAssistant>(responseContent);
     }
 
     public async Task UpdateAsync(HttpClient client, string apiKey)
@@ -75,17 +104,19 @@ public class AIAssistant
         var request = new RequestBuilder()
             .WithMethod(HttpMethod.Patch)
             .WithApiKey(apiKey)
-            .WithURL($"assistants/{Model.ID}")
+            .WithURL($"assistants/{ID}")
             .WithContent(JsonSerializer.Serialize(requestBody))
             .Build();
 
         var response = await client.SendAsync(request);
-        var result = await Utilities.ResponseDeserializer.FromResponse<AssistantObject>(response);
+        var result = await Utilities.ResponseDeserializer.FromResponse<AIAssistant>(response);
 
         if (result is null)
         {
             throw new Exception("Failed to update assistant");
         }
+
+        AssignParameters(result);
     }
 
     public static async Task<bool> DeleteAsync(HttpClient client, string apiKey, string id)
@@ -117,7 +148,7 @@ public class AIAssistant
         var assistants = ListAssistantsAsync(httpClient, apiKey);
 
         // Check if the "Veni ki" assistant already exists
-        var veniKiAssistant = await assistants.FirstOrDefaultAsync(a => a.Model.Name == "Veni Ki");
+        var veniKiAssistant = await assistants.FirstOrDefaultAsync(a => a.Name == "Veni Ki");
         if (veniKiAssistant is not null)
         {
             return veniKiAssistant;

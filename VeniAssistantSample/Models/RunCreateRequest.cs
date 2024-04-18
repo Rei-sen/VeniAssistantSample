@@ -10,7 +10,7 @@ namespace VeniAssistantSample.Models;
 internal class RunCreateRequest
 {
     [JsonPropertyName("assistant_id")]
-    public string AssistantID { get; set; }
+    public required string AssistantID { get; set; }
     [JsonPropertyName("model")]
     public string? Model { get; set; }
     [JsonPropertyName("instructions")]

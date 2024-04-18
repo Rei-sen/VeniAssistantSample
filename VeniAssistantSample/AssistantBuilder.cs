@@ -13,7 +13,7 @@ internal class AssistantBuilder
 {
     private string? _apiKey;
     private HttpClient? _httpClient;
-    private AssistantObject _requestBody = new();
+    private AIAssistant _requestBody = new();
 
     public AssistantBuilder WithApiKey(string apiKey)
     {
@@ -91,13 +91,13 @@ internal class AssistantBuilder
 
         HttpResponseMessage response = await _httpClient.SendAsync(request);
         await using Stream stream = await response.Content.ReadAsStreamAsync();
-        var result = await JsonSerializer.DeserializeAsync<AssistantObject>(stream);
+        var result = await JsonSerializer.DeserializeAsync<AIAssistant>(stream);
 
         if (result is null)
         {
             throw new Exception("Failed to create assistant");
         }
 
-        return new(result);
+        return result;
     }
 }

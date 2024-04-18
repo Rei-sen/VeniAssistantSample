@@ -90,7 +90,7 @@ public class Run
     public required IncompleteDetailsInfo? IncompleteDetails { get; set; }
 
     [JsonPropertyName("usage")]
-    public UsageInfo Usage { get; set; }
+    public UsageInfo? Usage { get; set; }
 
     [JsonPropertyName("temperature")]
     public required double? Temperature { get; set; }
