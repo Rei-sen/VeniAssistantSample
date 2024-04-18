@@ -13,6 +13,11 @@ internal class ResponseDeserializer
 {
     public static async Task<T?> FromResponse<T>(HttpResponseMessage response)
     {
+        return await FromResponse<T>(response, JsonSerializerOptions.Default);
+    }
+
+    public static async Task<T?> FromResponse<T>(HttpResponseMessage response, JsonSerializerOptions options)
+    {
         if (response is null)
             return default;
 

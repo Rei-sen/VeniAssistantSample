@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace VeniAssistantSample;
 public class Program
@@ -12,11 +13,23 @@ public class Program
         var apiKey = config["OpenAiApiKey"] ?? "";
         
         var assistant = await AIAssistant.GetVeniKiOrCreateNew(httpClient, apiKey);
+
         var thread = await AIThread.CreateAsync(httpClient, apiKey);
         Console.WriteLine("Enter 'exit' to quit");
         var run = await thread.CreateRunAsync(httpClient, apiKey, assistant);
-        while ((await thread.RetrieveRunAsync(httpClient, apiKey, run.ID)).Status != "completed")
-            Thread.Sleep(250);
+        do
+        {
+            var status = await thread.RetrieveRunAsync(httpClient, apiKey, run.ID);
+            if (status.Status == "requires_action")
+            {
+                Console.WriteLine(JsonSerializer.Serialize(status));
+            }
+            else if (status.Status == "completed")
+            {
+                break;
+            }
+        } while (true);
+
         var messages = await thread.ListMessagesAsync(httpClient, apiKey).ToListAsync();
 
         Console.WriteLine(messages[0].Content[0].Text.Value);
@@ -28,8 +41,18 @@ public class Program
                 break;
             await thread.CreateMessageAsync(httpClient, apiKey, input);
             run = await thread.CreateRunAsync(httpClient, apiKey, assistant);
-            while ((await thread.RetrieveRunAsync(httpClient, apiKey, run.ID)).Status != "completed")
-                Thread.Sleep(250);
+            do
+            {
+                var status = await thread.RetrieveRunAsync(httpClient, apiKey, run.ID);
+                if (status.Status == "requires_action")
+                {
+                    Console.WriteLine(JsonSerializer.Serialize(status));
+                }
+                else if (status.Status == "completed")
+                {
+                    break;
+                }
+            } while (true);
             messages = await thread.ListMessagesAsync(httpClient, apiKey).ToListAsync();
             Console.WriteLine(messages[0].Content[0].Text.Value);
         } while (true);

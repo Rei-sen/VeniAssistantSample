@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using VeniAssistantSample.Function;
 using VeniAssistantSample.Models;
 
 namespace VeniAssistantSample;
@@ -8,7 +9,7 @@ public class AIAssistant
     [JsonPropertyName("id")]
     public string? ID { get; set; }
     [JsonPropertyName("object")]
-    public string? ObjectName { get; set; } = "assistant";
+    public string? ObjectName { get; set; }
     [JsonPropertyName("created_at")]
     public ulong? CreatedAt { get; set; }
     [JsonPropertyName("name")]
@@ -19,6 +20,8 @@ public class AIAssistant
     public string Model { get; set; } = "gpt-4";
     [JsonPropertyName("instructions")]
     public string? Instructions { get; set; }
+    [JsonPropertyName("tools")]
+    public List<FunctionTool> Tools { get; set; } = new();
     [JsonPropertyName("temperature")]
     public double? Temperature { get; set; }
     [JsonPropertyName("top_p")]
@@ -87,28 +90,26 @@ public class AIAssistant
                .Build();
 
         var response = await client.SendAsync(request);
-        if (response is null)
-            return null;
 
-        var responseContent = await response.Content.ReadAsStringAsync();
-        if (responseContent is null)
-            return null;
-
-        return JsonSerializer.Deserialize<AIAssistant>(responseContent);
+        return await Utilities.ResponseDeserializer.FromResponse<AIAssistant>(response);
     }
 
     public async Task UpdateAsync(HttpClient client, string apiKey)
     {
-        var requestBody = Model;
+        JsonSerializerOptions options = new()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
 
         var request = new RequestBuilder()
             .WithMethod(HttpMethod.Patch)
             .WithApiKey(apiKey)
             .WithURL($"assistants/{ID}")
-            .WithContent(JsonSerializer.Serialize(requestBody))
+            .WithContent(JsonSerializer.Serialize(this, options))
             .Build();
 
         var response = await client.SendAsync(request);
+
         var result = await Utilities.ResponseDeserializer.FromResponse<AIAssistant>(response);
 
         if (result is null)
@@ -191,6 +192,7 @@ public class AIAssistant
                 // changed the part below to suit this program
                 "Those who talk to Veni (you) are users looking for venues to visit. " +
                 "For any questions, contact Kana (can @ me with <@236852510688542720>)")
+            .WithTool(new QueryFunction() {})
             .WithTemperature(1.0)
             .WithResponseFormat("auto")
             .Build();

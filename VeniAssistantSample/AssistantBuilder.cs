@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using VeniAssistantSample.Function;
 using VeniAssistantSample.Models;
 
 namespace VeniAssistantSample;
@@ -51,6 +52,11 @@ internal class AssistantBuilder
         return this;
     }
 
+    public AssistantBuilder WithTool(FunctionTool tool)
+    {
+        _requestBody.Tools.Add(tool);
+        return this;
+    }
     public AssistantBuilder WithTemperature(double temperature)
     {
         _requestBody.Temperature = temperature;
@@ -71,7 +77,12 @@ internal class AssistantBuilder
 
     public async Task<AIAssistant> Build()
     {
-        var requestBody = JsonSerializer.Serialize(_requestBody) ?? "";
+        JsonSerializerOptions options = new()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
+        
+        var requestBody = JsonSerializer.Serialize(_requestBody, options) ?? "";
 
         if (_apiKey is null)
         {
@@ -90,8 +101,10 @@ internal class AssistantBuilder
            .Build();
 
         HttpResponseMessage response = await _httpClient.SendAsync(request);
-        await using Stream stream = await response.Content.ReadAsStreamAsync();
-        var result = await JsonSerializer.DeserializeAsync<AIAssistant>(stream);
+        var stream = await response.Content.ReadAsStringAsync();
+
+
+        var result = JsonSerializer.Deserialize<AIAssistant>(stream);
 
         if (result is null)
         {
