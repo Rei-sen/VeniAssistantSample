@@ -13,7 +13,7 @@ internal class AssistantBuilder
 {
     private string? _apiKey;
     private HttpClient? _httpClient;
-    private AssistantCreateRequest _requestBody = new();
+    private AssistantObject _requestBody = new();
 
     public AssistantBuilder WithApiKey(string apiKey)
     {

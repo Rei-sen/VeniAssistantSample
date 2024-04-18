@@ -1,28 +1,47 @@
-﻿namespace VeniAssistantSample;
 
-public class Message
+using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
+
+namespace VeniAssistantSample;
+
+
+public record Message
 {
-    public class Text
+    public record MessageContent
     {
-        public string Value { get; set; }
-        public List<object> Annotations { get; set; }
+        public record TextContent
+        {
+            [JsonPropertyName("value")]
+            public required string Value { get; set; }
+            [JsonPropertyName("annotations")]
+            public required List<object> Annotations { get; set; }
+        }
+        [JsonPropertyName("type")]
+        public required string Type { get; set; }
+        [JsonPropertyName("text")]
+        public required TextContent Text { get; set; }
     }
 
-    public class MsgContent
-    {
-        public string Type { get; set; }
-        public Text Text { get; set; }
-    }
-    public string Id { get; set; }
-    public string Object { get; set; }
-    public int CreatedAt { get; set; }
-    public string AssistantId { get; set; }
-    public string ThreadId { get; set; }
-    public string RunId { get; set; }
-    public string Role { get; set; }
-    public List<MsgContent> Content { get; set; }
-    public List<object> FileIds { get; set; }
-    public object Metadata { get; set; }
+    [JsonPropertyName("id")]
+    public required string Id { get; set; }
+    [JsonPropertyName("object")]
+    public required string Object { get; set; }
+    [JsonPropertyName("created_at")]
+    public required ulong CreatedAt { get; set; }
+    [JsonPropertyName("assistant_id")]
+    public required string AssistantId { get; set; }
+    [JsonPropertyName("thread_id")]
+    public required string ThreadId { get; set; }
+    [JsonPropertyName("run_id")]
+    public required string? RunId { get; set; }
 
-   
+    [JsonPropertyName("role")]
+    public required string Role { get; set; }
+    [JsonPropertyName("content")]
+    public required List<MessageContent> Content { get; set; }
+    [JsonPropertyName("attachments")]
+    public required List<object> Attachments { get; set; }
+    [JsonPropertyName("metadata")]
+    public required object Metadata { get; set; }
+
 }

@@ -2,18 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace VeniAssistantSample.Models;
 
-internal record AssistantListResponse
+internal class MessageListResponse
 {
     [JsonPropertyName("object")]
-    public required string ObjectName { get; set; } = "assistant";
+    public required string ObjectName { get; set; } = "list";
     [JsonPropertyName("data")]
-    public required List<AssistantObject> Data { get; set; } 
+    public required List<Message> Data { get; set; }
     [JsonPropertyName("first_id")]
     public required string FirstID { get; set; }
     [JsonPropertyName("last_id")]

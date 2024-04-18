@@ -1,134 +1,188 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using VeniAssistantSample.Models;
 
 namespace VeniAssistantSample;
 
 internal class AIThread
 {
-    private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
+    [JsonPropertyName("id")]
+    public string? ID { get; set; }
+    [JsonPropertyName("object")]
+    public string Object { get; set; } = "thread";
+    [JsonPropertyName("created_at")]
+    public ulong CreatedAt { get; set; }
 
-    public string ID { get; private set; }
-    public ThreadData? Data { get; private set; }
-
-    public AIThread(HttpClient httpClient, string apiKey)
+    private void AssignParameters(AIThread thread)
     {
-        _httpClient = httpClient;
-        _apiKey = apiKey;
+        ID = thread.ID;
+        Object = thread.Object;
+        CreatedAt = thread.CreatedAt;
     }
 
-    public class ThreadData
-    {
-        public string Object { get; set; }
-        public List<Message> Data { get; set; }
-        public string FirstId { get; set; }
-        public string LastId { get; set; }
-        public bool HasMore { get; set; }
-    }
-
-    public async Task Create()
+    public static async Task<AIThread> CreateAsync(HttpClient httpClient, string apiKey)
     {
         var request = new RequestBuilder()
             .WithMethod(HttpMethod.Post)
-            .WithApiKey(_apiKey)
+            .WithApiKey(apiKey)
             .WithURL("threads")
             .WithContent("")
             .Build();
 
-        var response = await _httpClient.SendAsync(request);
-        string responseContent = await response.Content.ReadAsStringAsync();
+        var response = await httpClient.SendAsync(request);
+        var threadObject = await Utilities.ResponseDeserializer.FromResponse<AIThread>(response);
+        if (threadObject is null)
+            throw new Exception("Failed to create a new thread");
 
-        var jsonDocument = JsonSerializer.Serialize(responseContent);
-        //ID = (string?)jsonDocument.GetValue("id") ?? "";
-
-        response.EnsureSuccessStatusCode();
+        return threadObject;
     }
 
-    public async Task AddMessageAsync(string message)
-    {
-        string requestBody = @"
-        {
-            ""role"": ""user"",
-            ""content"": """ + message + @"""
-        }";
-
-        var request = new RequestBuilder()
-            .WithMethod(HttpMethod.Post)
-            .WithApiKey(_apiKey)
-            .WithURL($"threads/{ID}/messages")
-            .WithContent(requestBody)
-            .Build();
-
-        var response = await _httpClient.SendAsync(request);
-        string responseContent = await response.Content.ReadAsStringAsync();
-    }
-
-
-    public async Task<string> RunAsync(AIAssistant assistant)
-    {
-        string requestBody = @"
-        {
-            ""assistant_id"": """ + assistant.ID + @""",
-            ""instructions"": """"
-        }";
-
-        var request = new RequestBuilder()
-            .WithMethod(HttpMethod.Post)
-            .WithApiKey(_apiKey)
-            .WithURL($"threads/{ID}/runs")
-            .WithContent(requestBody)
-            .Build();
-
-        var response = await _httpClient.SendAsync(request);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        //var jsonDocument = JObject.Parse(responseContent);
-        //string runID = (string?)jsonDocument.GetValue("id") ?? "";
-
-        //return runID;
-        return "";
-    }
-
-    public async Task<string> PollRunResult(string runID)
+    public static async Task<AIThread> RetrieveThreadAsync(HttpClient httpClient, string apiKey, string id)
     {
         var request = new RequestBuilder()
             .WithMethod(HttpMethod.Get)
-            .WithApiKey(_apiKey)
+            .WithApiKey(apiKey)
+            .WithURL($"threads/{id}")
+            .WithContent("")
+            .Build();
+
+        var response = await httpClient.SendAsync(request);
+        var threadObject = await Utilities.ResponseDeserializer.FromResponse<AIThread>(response);
+        if (threadObject is null)
+            throw new Exception("Failed to get thread");
+
+        return threadObject;
+    }
+
+    public async Task UpdateAsync(HttpClient httpClient, string apiKey)
+    {
+        var request = new RequestBuilder()
+            .WithMethod(HttpMethod.Post)
+            .WithApiKey(apiKey)
+            .WithURL($"threads/{ID}")
+            .WithContent("")
+            .Build();
+
+        var response = await httpClient.SendAsync(request);
+        var threadObject = await Utilities.ResponseDeserializer.FromResponse<AIThread>(response);
+        if (threadObject is null)
+            throw new Exception("Failed to update thread");
+
+        AssignParameters(threadObject);
+    }
+
+    public async Task<DeletionStatus> DeleteAsync(HttpClient httpClient, string apiKey)
+    {
+        var request = new RequestBuilder()
+            .WithMethod(HttpMethod.Delete)
+            .WithApiKey(apiKey)
+            .WithURL($"threads/{ID}")
+            .WithContent("")
+            .Build();
+
+        var response = await httpClient.SendAsync(request);
+        var deletionStatus = await Utilities.ResponseDeserializer.FromResponse<DeletionStatus>(response);
+        if (deletionStatus is null)
+            throw new Exception("Failed to delete thread");
+
+        return deletionStatus;
+    }
+
+    public async Task<Message> CreateMessageAsync(HttpClient httpClient, string apiKey, string message, string role = "user")
+    {
+        var requestBody = new
+        {
+            role = role,
+            content = message
+        };
+
+        var request = new RequestBuilder()
+            .WithMethod(HttpMethod.Post)
+            .WithApiKey(apiKey)
+            .WithURL($"threads/{ID}/messages")
+            .WithContent(JsonSerializer.Serialize(requestBody))
+            .Build();
+
+        var response = await httpClient.SendAsync(request);
+        var messageObject = await Utilities.ResponseDeserializer.FromResponse<Message>(response);
+        if (messageObject is null)
+            throw new Exception("Failed to create a new message");
+
+        return messageObject;
+    }
+
+    public async IAsyncEnumerable<Message> ListMessagesAsync(HttpClient httpClient, string apiKey)
+    {
+        var requestBody = new MessageListRequest();
+        bool hasMore;
+
+        do
+        {
+            var request = new RequestBuilder()
+                            .WithMethod(HttpMethod.Get)
+                            .WithApiKey(apiKey)
+                            .WithURL($"threads/{ID}/messages?{Utilities.GETQuery.SerializeObjectToQueryString(requestBody)}")
+                            .WithContent("")
+                            .Build();
+
+            var response = await httpClient.SendAsync(request);
+            if (request is null)
+                throw new Exception("Failed to get messages");
+
+            var messages = await Utilities.ResponseDeserializer.FromResponse<MessageListResponse>(response);
+            if (messages is null)
+                throw new Exception("Failed to get messages");
+
+            foreach (var message in messages.Data)
+            {
+                yield return message;
+            }
+          
+            hasMore = messages.HasMore;
+           
+            if (hasMore)
+            {
+                requestBody.After = messages.LastID;
+            }
+        } while (hasMore);
+    }
+
+    public async Task<Run> CreateRunAsync(HttpClient httpClient, string apiKey, AIAssistant assistant)
+    {
+        var requestBody = new RunCreateRequest
+        {
+            AssistantID = assistant.Model.ID
+        };
+
+        var request = new RequestBuilder()
+            .WithMethod(HttpMethod.Post)
+            .WithApiKey(apiKey)
+            .WithURL($"threads/{ID}/runs")
+            .WithContent(JsonSerializer.Serialize(requestBody))
+            .Build();
+
+        var response = await httpClient.SendAsync(request);
+        var runObject = await Utilities.ResponseDeserializer.FromResponse<Run>(response);
+        if (runObject is null)
+            throw new Exception("Failed to create a new run");
+
+        return runObject;
+    }
+
+    public async Task<Run> RetrieveRunAsync(HttpClient httpClient, string apiKey, string runID)
+    {
+        var request = new RequestBuilder()
+            .WithMethod(HttpMethod.Get)
+            .WithApiKey(apiKey)
             .WithURL($"threads/{ID}/runs/{runID}")
             .WithContent("")
             .Build();
 
-        var response = await _httpClient.SendAsync(request);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        //var jsonDocument = JObject.Parse(responseContent);
-        //string status = (string?)jsonDocument.GetValue("status") ?? "";
+        var response = await httpClient.SendAsync(request);
+        var runObject = await Utilities.ResponseDeserializer.FromResponse<Run>(response);
+        if (runObject is null)
+            throw new Exception("Failed to get run");
 
-        //return status;
-        return "";
-    }
-
-    public async Task GetMessagesAsync()
-    {
-        var request = new RequestBuilder()
-            .WithMethod(HttpMethod.Get)
-            .WithApiKey(_apiKey)
-            .WithURL($"threads/{ID}/messages")
-            .WithContent("")
-            .Build();
-
-        var response = await _httpClient.SendAsync(request);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        AssigntThreadData(responseContent);
-    }
-
-    private void AssigntThreadData(string jsonString)
-    {
-        //var jsonDocument = JObject.Parse(jsonString);
-        //Data = new ThreadData
-        //{
-        //    Object = (string?)jsonDocument.GetValue("object") ?? "",
-        //    Data = jsonDocument["data"].ToObject<List<Message>>() ?? new List<Message>(),
-        //    FirstId = (string?)jsonDocument.GetValue("first_id") ?? "",
-        //    LastId = (string?)jsonDocument.GetValue("last_id") ?? "",
-        //    HasMore = (bool?)jsonDocument.GetValue("has_more") ?? false
-        //};
+        return runObject;
     }
 }

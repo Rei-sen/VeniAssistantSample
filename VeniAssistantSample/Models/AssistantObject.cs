@@ -11,39 +11,23 @@ namespace VeniAssistantSample.Models;
 public record AssistantObject
 {
     [JsonPropertyName("id")]
-    public required string ID { get; set; }
+    public string? ID { get; set; }
     [JsonPropertyName("object")]
-    public required string ObjectName { get; set; } = "assistant";
+    public string ObjectName { get; set; } = "assistant";
     [JsonPropertyName("created_at")]
-    public required ulong CreatedAt { get; set; }
+    public ulong? CreatedAt { get; set; }
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public  string Name { get; set; }
     [JsonPropertyName("description")]
-    public required string Description { get; set; }
+    public  string Description { get; set; }
     [JsonPropertyName("model")]
-    public required string Model { get; set; }
+    public  string Model { get; set; }
     [JsonPropertyName("instructions")]
-    public required string Instructions { get; set; }
+    public  string Instructions { get; set; }
     [JsonPropertyName("temperature")]
-    public required double Temperature { get; set; }
+    public  double Temperature { get; set; }
     [JsonPropertyName("top_p")]
-    public required double TopP { get; set; }
+    public  double TopP { get; set; }
     [JsonPropertyName("response_format")]
-    public required string ResponseFormat { get; set; }
-
-    public static async Task<AssistantObject?> FromResponse(HttpResponseMessage response)
-    {
-        if (response is null)
-            return null;
-
-        using var responseContent = await response.Content.ReadAsStreamAsync();
-        if (responseContent is null)
-            return null;
-
-        var result = await JsonSerializer.DeserializeAsync<AssistantObject>(responseContent);
-        if (result is null)
-            return null;
-
-        return result;
-    }
+    public  string ResponseFormat { get; set; }
 }

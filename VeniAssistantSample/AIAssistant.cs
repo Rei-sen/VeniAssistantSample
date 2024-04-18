@@ -4,29 +4,18 @@ using VeniAssistantSample.Models;
 namespace VeniAssistantSample;
 public class AIAssistant
 {
-    public string ID { get; private set; }
-    public string Name { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string Instructions { get; set; } = "";
-    public double Temperature { get; set; } = 1.0;
-    public double TopP { get; set; } = 1.0;
-    public string ResponseFormat { get; set; } = "auto";
+    public AssistantObject Model { get; set; }
 
     public AIAssistant(AssistantObject createResult)
     {
-
-        ID = createResult.ID;
-        Name = createResult.Name;
-        Description = createResult.Description;
-        Instructions = createResult.Instructions;
-        Temperature = createResult.Temperature;
-        TopP = createResult.TopP;
-        ResponseFormat = createResult.ResponseFormat;
+        Model = createResult;
     }
 
     public static async IAsyncEnumerable<AIAssistant> ListAssistantsAsync(HttpClient client, string apiKey)
     {
-        async Task<AssistantListResponse?> requestList(AssistantListRequest requestBody)
+        var requestBody = new AssistantListRequest();
+        bool hasMore;
+        do
         {
             var request = new RequestBuilder()
                 .WithMethod(HttpMethod.Get)
@@ -36,36 +25,26 @@ public class AIAssistant
                 .Build();
 
             var response = await client.SendAsync(request);
-            return await AssistantListResponse.FromResponse(response);
-        }
+            if (response is null)
+            {
+                yield break;
+            }
 
-        var requestBody = new AssistantListRequest();
+            var result = await Utilities.ResponseDeserializer.FromResponse<AssistantListResponse>(response);
+            if (result is null)
+            {
+                yield break;
+            }
 
-        var result = await requestList(requestBody);
-        if (result is null)
-        {
-            yield break;
-        }
-
-        bool hasMore = true;
-        while (hasMore)
-        {
             foreach (var assistant in result.Data)
             {
                 yield return new AIAssistant(assistant);
             }
 
             hasMore = result.HasMore;
-            if (hasMore)
-            {
-                requestBody = new AssistantListRequest { After = result.LastID };
-                result = await requestList(requestBody);
-                if (result is null)
-                {
-                    yield break;
-                }
-            }
-        }
+            requestBody.After = result.LastID;
+        } while (hasMore);
+
     }
 
     public static async Task<AIAssistant?> RetrieveAsync(HttpClient client, string apiKey, string id)
@@ -91,25 +70,17 @@ public class AIAssistant
 
     public async Task UpdateAsync(HttpClient client, string apiKey)
     {
-        var requestBody = new AssistantCreateRequest
-        {
-            Name = Name,
-            Description = Description,
-            Instructions = Instructions,
-            Temperature = Temperature,
-            TopP = TopP,
-            ResponseFormat = ResponseFormat
-        };
+        var requestBody = Model;
 
         var request = new RequestBuilder()
             .WithMethod(HttpMethod.Patch)
             .WithApiKey(apiKey)
-            .WithURL($"assistants/{ID}")
+            .WithURL($"assistants/{Model.ID}")
             .WithContent(JsonSerializer.Serialize(requestBody))
             .Build();
 
         var response = await client.SendAsync(request);
-        AssistantObject? result = await AssistantObject.FromResponse(response);
+        var result = await Utilities.ResponseDeserializer.FromResponse<AssistantObject>(response);
 
         if (result is null)
         {
@@ -117,29 +88,6 @@ public class AIAssistant
         }
     }
 
-    public async Task<bool> DeleteAsync(HttpClient client, string apiKey)
-    {
-        var request = new RequestBuilder()
-            .WithMethod(HttpMethod.Delete)
-            .WithApiKey(apiKey)
-            .WithURL($"assistants/{ID}")
-            .WithContent("")
-            .Build();
-
-        var response = await client.SendAsync(request);
-        if (response is null)
-        {
-            return false;
-        }
-
-        var result = await AssistantDeletionStatus.FromResponse(response);
-        if (result is null)
-        {
-            return false;
-        }
-
-        return result.Deleted;
-    }
     public static async Task<bool> DeleteAsync(HttpClient client, string apiKey, string id)
     {
         var request = new RequestBuilder()
@@ -155,7 +103,7 @@ public class AIAssistant
             return false;
         }
 
-        var result = await AssistantDeletionStatus.FromResponse(response);
+        var result = await Utilities.ResponseDeserializer.FromResponse<DeletionStatus>(response);
         if (result is null)
         {
             return false;
@@ -169,7 +117,7 @@ public class AIAssistant
         var assistants = ListAssistantsAsync(httpClient, apiKey);
 
         // Check if the "Veni ki" assistant already exists
-        var veniKiAssistant = await assistants.FirstOrDefaultAsync(a => a.Name == "Veni Ki");
+        var veniKiAssistant = await assistants.FirstOrDefaultAsync(a => a.Model.Name == "Veni Ki");
         if (veniKiAssistant is not null)
         {
             return veniKiAssistant;
