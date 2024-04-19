@@ -11,7 +11,7 @@ public class Program
         var config = configBuilder.Build();
         using var httpClient = new HttpClient();
         var apiKey = config["OpenAiApiKey"] ?? "";
-        
+
         var assistant = await AIAssistant.GetVeniKiOrCreateNew(httpClient, apiKey);
 
         var thread = await AIThread.CreateAsync(httpClient, apiKey);
@@ -50,24 +50,37 @@ public class Program
                     foreach (var toolCall in status.RequiredActionObject.SubmitToolOutputsObject.ToolCalls)
                     {
                         Console.WriteLine($"{toolCall.Parameters.Name} call!: {toolCall.Parameters.Arguments}!");
-                        var query = JsonSerializer.Deserialize<VenuesAPIQueryParameters>(toolCall.Parameters.Arguments);
-                        if (query is not null)
+
+                        if (toolCall.Parameters.Name == "query_venues")
                         {
-                            var request = new HttpRequestMessage
+                            var query = JsonSerializer.Deserialize<VenuesAPIQueryParameters>(toolCall.Parameters.Arguments);
+                            if (query is not null)
                             {
-                                Method = HttpMethod.Get,
-                                RequestUri = new Uri($"https://api.ffxivvenues.dev/Venue?{Utilities.GETQuery.SerializeObjectToQueryString(query)}"),
-                            };
-                            var response = await httpClient.SendAsync(request);
-                            var responseContent = await response.Content.ReadAsStringAsync();
+                                var request = new HttpRequestMessage
+                                {
+                                    Method = HttpMethod.Get,
+                                    RequestUri = new Uri($"https://api.ffxivvenues.dev/Venue?{Utilities.GETQuery.SerializeObjectToQueryString(query)}"),
+                                };
+                                var response = await httpClient.SendAsync(request);
+                                var responseContent = await response.Content.ReadAsStringAsync();
+                                outputs.Add(new ToolOutput
+                                {
+                                    ToolCallId = toolCall.ID,
+                                    Output = responseContent,
+                                });
+                            }
+                        }
+
+                        else if (toolCall.Parameters.Name == "post_shown_venue_id")
+                        {
                             outputs.Add(new ToolOutput
                             {
                                 ToolCallId = toolCall.ID,
-                                Output = responseContent,
-                            }); 
+                                Output = "Venue ID posted!",
+                            });
                         }
                     }
-                    await run.SubmitToolOutputs(httpClient, apiKey, outputs);
+                    await status.SubmitToolOutputs(httpClient, apiKey, outputs);
                 }
                 else if (status.Status == "completed")
                 {
@@ -77,7 +90,7 @@ public class Program
             messages = await thread.ListMessagesAsync(httpClient, apiKey).ToListAsync();
             Console.WriteLine(messages[0].Content[0].Text.Value);
         } while (true);
-        
+
         //await assistant.CreateAssistant();
 
         //var thread = new AIThread(httpClient, apiKey);

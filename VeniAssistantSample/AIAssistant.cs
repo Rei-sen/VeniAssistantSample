@@ -191,8 +191,13 @@ public class AIAssistant
                 "Zah looks after the ancillary “Events team”. " +
                 // changed the part below to suit this program
                 "Those who talk to Veni (you) are users looking for venues to visit. " +
-                "For any questions, contact Kana (can @ me with <@236852510688542720>)")
+                "For any questions, contact Kana (can @ me with <@236852510688542720>). " +
+                "After you show a venue to the user, you must call `post_shown_venue_id` " +
+                "function to make sure the app you're working inside properly displays it. " +
+                "You don't need to post any additional information about the venue, other " +
+                "than calling the function, as the information will be redundand.")
             .WithTool(new QueryFunction() {})
+            .WithTool(new PostShownVenueID())
             .WithTemperature(1.6)
             .WithResponseFormat("auto")
             .Build();
