@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace OpenAI;
@@ -48,5 +50,25 @@ public abstract class BaseEndpoint(OpenAIClient client)
         }
 
         return query.ToString();
+    }
+
+    protected async Task<T?> SendRequestAsync<T>(string url, HttpMethod method, object? requestBody = null, CancellationToken cancellationToken = default)
+    {
+        var request = new HttpRequestMessage(method, url);
+        if (requestBody != null)
+        {
+            request.Content = JsonContent.Create(requestBody);
+        }
+
+        var response = await _client._httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var error = JsonSerializer.Deserialize<ErrorOjbect>(errorJson);
+            throw new ErrorResponseException(error!.ErrorDetails);
+        }
+
+        using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        return await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 }

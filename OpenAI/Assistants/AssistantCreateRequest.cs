@@ -10,7 +10,7 @@ namespace OpenAI.Assistants;
 public class AssistantCreateRequest
 {
     [JsonPropertyName("model")]
-    public required string Model { get; set; }
+    public string? Model { get; set; }
     [JsonPropertyName("name")]
     public string? Name { get; set; }
     [JsonPropertyName("description")]

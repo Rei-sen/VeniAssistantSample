@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using OpenAI.Common;
 
 namespace OpenAI.Assistants;
 
@@ -18,11 +19,34 @@ public class AssistantsEndpoint : BaseEndpoint
 
     public async Task<AssistantResponse?> CreateAssistantAsync(AssistantCreateRequest request, CancellationToken cancellationToken = default)
     {
+        if (request.Model is null)
+            throw new ArgumentNullException(nameof(request.Model));
+
         var url = CreateUrl("");
-        var jsonContent = JsonSerializer.Serialize(request);
-        var response = await _client._httpClient.PostAsync(url, JsonContent.Create(jsonContent), cancellationToken).ConfigureAwait(false);
-        using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-        return await JsonSerializer.DeserializeAsync<AssistantResponse>(responseStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return await SendRequestAsync<AssistantResponse>(url, HttpMethod.Post, request, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<ListResponse<AssistantResponse>?> ListAssistantsAsync(ListQuery? query = null, CancellationToken cancellationToken = default)
+    {
+        var url = CreateUrl("", query);
+        return await SendRequestAsync<ListResponse<AssistantResponse>>(url, HttpMethod.Get, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<AssistantResponse?> RetrieveAssistantAsync(string assistantId, CancellationToken cancellationToken = default)
+    {
+        var url = CreateUrl($"/{assistantId}");
+        return await SendRequestAsync<AssistantResponse>(url, HttpMethod.Get, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<AssistantResponse?> ModifyAssistantAsync(string assistantId, AssistantCreateRequest request, CancellationToken cancellationToken = default)
+    {
+        var url = CreateUrl($"/{assistantId}");
+        return await SendRequestAsync<AssistantResponse>(url, HttpMethod.Post, request, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DeletionStatus?> DeleteAssistantAsync(string assistantId, CancellationToken cancellationToken = default)
+    {
+        var url = CreateUrl($"/{assistantId}");
+        return await SendRequestAsync<DeletionStatus>(url, HttpMethod.Delete, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
 }

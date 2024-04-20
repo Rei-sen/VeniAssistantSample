@@ -1,5 +1,8 @@
 ﻿using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using OpenAI;
+using OpenAI.Assistants;
+using OpenAI.Common;
 
 namespace VeniAssistantSample;
 public class Program
@@ -12,103 +15,73 @@ public class Program
         using var httpClient = new HttpClient();
         var apiKey = config["OpenAiApiKey"] ?? "";
 
-        var assistant = await AIAssistant.GetVeniKiOrCreateNew(httpClient, apiKey);
+        //var assistant = await AIAssistant.GetVeniKiOrCreateNew(httpClient, apiKey);
 
-        var thread = await AIThread.CreateAsync(httpClient, apiKey);
-        Console.WriteLine("Enter 'exit' to quit");
-        var run = await thread.CreateRunAsync(httpClient, apiKey, assistant, "Give a very brief introduction of yourself to the user.");
+        OpenAIClient openAIClient = new(apiKey);
+
+        var veni = await GetVeniKiOrCreateNew(openAIClient);
+    }
+
+    public static async Task<AssistantResponse> GetVeniKiOrCreateNew(OpenAIClient openAIClient)
+    {
+        bool hasMore;
+        string? nextPageToken = null;
+        AssistantResponse? veniKi = null;
+
         do
         {
-            var status = await thread.RetrieveRunAsync(httpClient, apiKey, run.ID);
-            if (status.Status == "requires_action")
+            var query = new ListQuery() { Limit = 100, After = nextPageToken };
+            var assistants = await openAIClient.Assistants.ListAssistantsAsync(query);
+            nextPageToken = assistants?.LastID;
+            hasMore = assistants?.HasMore ?? false;
+            veniKi = assistants?.Data.FirstOrDefault(a => a.Name == "VeniKi");
+            if (veniKi is not null)
             {
-                Console.WriteLine(JsonSerializer.Serialize(status));
+                return veniKi;
             }
-            else if (status.Status == "completed")
-            {
-                break;
-            }
-        } while (true);
+        } while (hasMore);
 
-        var messages = await thread.ListMessagesAsync(httpClient, apiKey).ToListAsync();
-
-        Console.WriteLine(messages[0].Content[0].Text.Value);
-        do
-        {
-            Console.Write("> ");
-            var input = Console.ReadLine() ?? "";
-            if (input == "exit")
-                break;
-            await thread.CreateMessageAsync(httpClient, apiKey, input);
-            run = await thread.CreateRunAsync(httpClient, apiKey, assistant);
-            do
-            {
-                var status = await thread.RetrieveRunAsync(httpClient, apiKey, run.ID);
-                if (status.Status == "requires_action")
-                {
-                    var outputs = new List<ToolOutput>();
-                    foreach (var toolCall in status.RequiredActionObject.SubmitToolOutputsObject.ToolCalls)
-                    {
-                        Console.WriteLine($"{toolCall.Parameters.Name} call!: {toolCall.Parameters.Arguments}!");
-
-                        if (toolCall.Parameters.Name == "query_venues")
-                        {
-                            var query = JsonSerializer.Deserialize<VenuesAPIQueryParameters>(toolCall.Parameters.Arguments);
-                            if (query is not null)
-                            {
-                                var request = new HttpRequestMessage
-                                {
-                                    Method = HttpMethod.Get,
-                                    RequestUri = new Uri($"https://api.ffxivvenues.dev/Venue?{Utilities.GETQuery.SerializeObjectToQueryString(query)}"),
-                                };
-                                var response = await httpClient.SendAsync(request);
-                                var responseContent = await response.Content.ReadAsStringAsync();
-                                outputs.Add(new ToolOutput
-                                {
-                                    ToolCallId = toolCall.ID,
-                                    Output = responseContent,
-                                });
-                            }
-                        }
-
-                        else if (toolCall.Parameters.Name == "post_shown_venue_id")
-                        {
-                            outputs.Add(new ToolOutput
-                            {
-                                ToolCallId = toolCall.ID,
-                                Output = "Venue ID posted!",
-                            });
-                        }
-                    }
-                    await status.SubmitToolOutputs(httpClient, apiKey, outputs);
-                }
-                else if (status.Status == "completed")
-                {
-                    break;
-                }
-            } while (true);
-            messages = await thread.ListMessagesAsync(httpClient, apiKey).ToListAsync();
-            Console.WriteLine(messages[0].Content[0].Text.Value);
-        } while (true);
-
-        //await assistant.CreateAssistant();
-
-        //var thread = new AIThread(httpClient, apiKey);
-        //await thread.Create();
-
-        //string input;
-        //Console.Write("> ");
-        //while ((input = Console.ReadLine()) != "exit")
-        //{
-        //    await thread.AddMessageAsync(input);
-        //    string runID = await thread.RunAsync(assistant);
-        //    while (await thread.PollRunResult(runID) != "completed")
-        //        Thread.Sleep(500);
-
-        //    await thread.GetMessagesAsync();
-        //    Console.WriteLine(thread.Data.Data[0].Content[0].Text.Value);
-
-        //    Console.Write("> ");
-        //}
+        var request = new AssistantCreateRequest { 
+            Model = "gpt-4",
+            Name = "VeniKi",
+            Temperature = 1.6,
+            Instructions = "FFXIV Venues is a website dedicated to providing a " +
+                "comprehensive directory of player - made venues within Final Fantasy " +
+                "XIV.The project aims to create a centralized hub where players can " +
+                "find, browse, and share information about various in -game locations " +
+                "that have been created and designed for roleplaying, events, " +
+                "performances, and other player - driven activities.You are Veni, " +
+                "an AI counter part to the FFXIV Venues website within discord, the " +
+                "chat application.You’ve been around helping Owners with their venues " +
+                "since late 2021 but really came into your all with the expansion of " +
+                "the FFXIV Venues project in Europe where we had hundreds of Venue’s " +
+                "index themselves via you every week! You have a number of commands " +
+                "available to the user / find(example / find Venue) to find a venue," +
+                "/ create to create a venue of their own(which you’ll guide them " +
+                "though), / delete to delete their venue, / edit to edit their venue," +
+                "/ open to open their venue adhoc outside of the automatic schedule, " +
+                "and / close to cancel an adhoc opening or override the automatic " +
+                "schedule and keep the venue from showing as open for a set period " +
+                "of time.New venues that are created are approved by the " +
+                "“Indexers” before they show on the site, Kaeda is “Head of Index” " +
+                "and looks after the Indexers and the quality of the list of " +
+                "venues.We have “NA Indexers”, “OCE Indexers”, and “EU Indexers” " +
+                "that can support venue owners in their " +
+                "region should they need it.Kana is the lead of the project who " +
+                "created the site and you, Veni. You and others often call Kana " +
+                "your mom! Kana is help by Vice Leads Sumi (Head of Strategy), " +
+                "and Josean(Head of Operations). Lanna, Ali, Uchu and Lily " +
+                "moderate the discord and keep the community there happy. " +
+                "Zah looks after the ancillary “Events team”. " +
+                // changed the part below to suit this program
+                "Those who talk to Veni (you) are users looking for venues to visit. " +
+                "For any questions, contact Kana (can @ me with <@236852510688542720>). " +
+                "After you show a venue to the user, you must call `post_shown_venue_id` " +
+                "function to make sure the app you're working inside properly displays it. " +
+                "You don't need to post any additional information about the venue, other " +
+                "than calling the function, as the information will be redundand."
+        };
+        var createdAssistant = await openAIClient.Assistants.CreateAssistantAsync(request);
+        return createdAssistant;
     }
 }
