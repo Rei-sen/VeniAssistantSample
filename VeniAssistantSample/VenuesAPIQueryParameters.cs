@@ -27,4 +27,6 @@ internal class VenuesAPIQueryParameters
     public bool? Open { get; set; }
     [JsonPropertyName("WithinWeek")]
     public bool? WithinWeek { get; set; }
+
+    
 }

@@ -12,7 +12,7 @@ public record ErrorDetails
     public required string Code { get; set;  }
 }
 
-public record ErrorOjbect
+public record ErrorObject
 {
     [JsonPropertyName("error")]
     public required ErrorDetails ErrorDetails { get; set; }

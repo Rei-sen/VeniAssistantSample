@@ -17,7 +17,7 @@ public class AssistantsEndpoint : BaseEndpoint
     {
     }
 
-    public async Task<AssistantResponse?> CreateAssistantAsync(AssistantCreateRequest request, CancellationToken cancellationToken = default)
+    public async Task<AssistantResponse> CreateAssistantAsync(AssistantCreateRequest request, CancellationToken cancellationToken = default)
     {
         if (request.Model is null)
             throw new ArgumentNullException(nameof(request.Model));
@@ -26,27 +26,27 @@ public class AssistantsEndpoint : BaseEndpoint
         return await SendRequestAsync<AssistantResponse>(url, HttpMethod.Post, request, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<ListResponse<AssistantResponse>?> ListAssistantsAsync(ListQuery? query = null, CancellationToken cancellationToken = default)
+    public async Task<ListResponse<AssistantResponse>> ListAssistantsAsync(ListQuery? query = null, CancellationToken cancellationToken = default)
     {
         var url = CreateUrl("", query);
         return await SendRequestAsync<ListResponse<AssistantResponse>>(url, HttpMethod.Get, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<AssistantResponse?> RetrieveAssistantAsync(string assistantId, CancellationToken cancellationToken = default)
+    public async Task<AssistantResponse> RetrieveAssistantAsync(string assistantID, CancellationToken cancellationToken = default)
     {
-        var url = CreateUrl($"/{assistantId}");
+        var url = CreateUrl($"/{assistantID}");
         return await SendRequestAsync<AssistantResponse>(url, HttpMethod.Get, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<AssistantResponse?> ModifyAssistantAsync(string assistantId, AssistantCreateRequest request, CancellationToken cancellationToken = default)
+    public async Task<AssistantResponse> ModifyAssistantAsync(string assistantID, AssistantCreateRequest request, CancellationToken cancellationToken = default)
     {
-        var url = CreateUrl($"/{assistantId}");
+        var url = CreateUrl($"/{assistantID}");
         return await SendRequestAsync<AssistantResponse>(url, HttpMethod.Post, request, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<DeletionStatus?> DeleteAssistantAsync(string assistantId, CancellationToken cancellationToken = default)
+    public async Task<DeletionStatus> DeleteAssistantAsync(string assistantID, CancellationToken cancellationToken = default)
     {
-        var url = CreateUrl($"/{assistantId}");
+        var url = CreateUrl($"/{assistantID}");
         return await SendRequestAsync<DeletionStatus>(url, HttpMethod.Delete, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 }

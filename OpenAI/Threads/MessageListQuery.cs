@@ -4,11 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using OpenAI.Common;
 
-namespace VeniAssistantSample;
+namespace OpenAI.Threads;
 
-public class Tool
+public class MessageListQuery : ListQuery
 {
-    [JsonPropertyName("type")]
-    public string Type { get; set; }
+    [JsonPropertyName("run_id")]
+    public string? RunID { get; set; }
 }

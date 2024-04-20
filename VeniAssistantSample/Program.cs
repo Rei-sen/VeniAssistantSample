@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using OpenAI;
 using OpenAI.Assistants;
 using OpenAI.Common;
+using OpenAI.Threads;
+using OpenAI.Functions;
 
 namespace VeniAssistantSample;
 public class Program
@@ -15,13 +17,48 @@ public class Program
         using var httpClient = new HttpClient();
         var apiKey = config["OpenAiApiKey"] ?? "";
 
-        //var assistant = await AIAssistant.GetVeniKiOrCreateNew(httpClient, apiKey);
+        var apiCall = Function.FromFunc(typeof(Program).GetMethod("VenuesAPIQueryParameters"));
+        var serialized = JsonSerializer.Serialize(apiCall);
 
-        OpenAIClient openAIClient = new(apiKey);
+        //OpenAIClient openAIClient = new(apiKey);
 
-        var veni = await GetVeniKiOrCreateNew(openAIClient);
+        //var veni = await GetVeniKiOrCreateNew(openAIClient);
+        //var thread = await openAIClient.Threads.CreateThreadAsync(new ThreadCreateRequest {  });
     }
 
+    public enum DataCenter
+    {
+        Chaos,
+        Light,
+        Aether,
+        Primal,
+        Crystal
+    }
+
+    public enum World
+    {
+        Omega,
+        Ragnarok,
+        Cerberus,
+        Louisoix,
+        Moogle
+    }
+
+    [FunctionDefinition(name: "VenuesAPIQueryParameters", description: "Querry ffxiv venues for list of venues.")]
+    public static string VenuesAPIQueryParameters(
+        [FunctionParameter("name of venue")] string name,
+        [FunctionParameter("Venue manager's name")] string manager,
+        [FunctionParameter("Name of the datacenter where the venue is located")] DataCenter dataCenter,
+        [FunctionParameter("The world where the venue is located")] World world,
+        [FunctionParameter("',' separated list of tags")] string tags,
+        [FunctionParameter("Whether the venue has a banner")] bool hasBanner,
+        [FunctionParameter("Whether the venue is approved")] bool isApproved,
+        [FunctionParameter("Whether the venue is open right now")] bool isOpen,
+        [FunctionParameter("Whether the venue is open whithin a week")] bool withinWeek = false
+        )
+    {
+        return "";
+    }
     public static async Task<AssistantResponse> GetVeniKiOrCreateNew(OpenAIClient openAIClient)
     {
         bool hasMore;

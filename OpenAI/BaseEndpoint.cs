@@ -52,10 +52,10 @@ public abstract class BaseEndpoint(OpenAIClient client)
         return query.ToString();
     }
 
-    protected async Task<T?> SendRequestAsync<T>(string url, HttpMethod method, object? requestBody = null, CancellationToken cancellationToken = default)
+    protected async Task<T> SendRequestAsync<T>(string url, HttpMethod method, object? requestBody = null, CancellationToken cancellationToken = default)
     {
         var request = new HttpRequestMessage(method, url);
-        if (requestBody != null)
+        if (requestBody is not null)
         {
             request.Content = JsonContent.Create(requestBody);
         }
@@ -63,12 +63,18 @@ public abstract class BaseEndpoint(OpenAIClient client)
         var response = await _client._httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            var errorJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var error = JsonSerializer.Deserialize<ErrorOjbect>(errorJson);
+            using var errorJson = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            var error = await JsonSerializer.DeserializeAsync<ErrorObject>(errorJson);
+            if (error is null)
+                throw new JsonException("Failed to deserialize error response");
             throw new ErrorResponseException(error!.ErrorDetails);
         }
 
         using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-        return await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var result = await JsonSerializer.DeserializeAsync<T>(responseStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (result is null)
+            throw new JsonException("Failed to deserialize response");
+
+        return result;
     }
 }
