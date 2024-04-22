@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using OpenAI.Threads;
@@ -16,23 +15,17 @@ public class Function
     public required JsonObject Parameters { get; set; }
 
     [JsonIgnore]
-    private object? _instance = null;
-    [JsonIgnore]
-    internal MethodInfo? _method;
+    internal Delegate? Delegate;
     [JsonIgnore]
     private static readonly Dictionary<string, Function> _knownMethods = new();
 
-    public static Function FromFunc(string methodName, object? instance = null)
+    public static Function FromFunc(Delegate @delegate)
     {
-        MethodInfo? method = instance!.GetType().GetMethod(methodName);
-        if (method is null)
-        {
-            throw new Exception($"Method '{methodName}' not found on instance of type '{instance.GetType().Name}'");
-        }
-        var function = SchemaGenerator.GenerateSchema(method);
-
-        function._instance = instance;
-        _knownMethods[method.Name] = function;
+        if (@delegate.Method.ReturnType != typeof(Task<FunctionResult>))
+            throw new ArgumentException($"{@delegate.Method.Name} does not return type of `Task<FunctionResult>`");
+            
+        var function = SchemaGenerator.GenerateSchema(@delegate);
+        _knownMethods[@delegate.Method.Name] = function;
         return function;
     }
 
@@ -41,22 +34,19 @@ public class Function
         try
         {
             if (!_knownMethods.TryGetValue(functionCall.Name, out var function))
-            {
                 throw new Exception($"Function '{functionCall.Name}' not found");
-            }
 
-            if (function._method is null)
-            {
+            if (function.Delegate is null)
                 throw new Exception($"Function '{functionCall.Name}' is null. Please ensure that the function is properly registered.");
-            }
 
-            object[] arguments = function.ParseArguments(functionCall.Arguments);
+            var arguments = function.ParseArguments(functionCall.Arguments);
             
-            var returnValue = await (dynamic) function._method.Invoke(function._instance, arguments);
-            return returnValue switch
+            var returnTask = function.Delegate.DynamicInvoke(arguments) as Task<FunctionResult>;
+            var result = await returnTask!;
+            return result switch
             {
-                StringResult => returnValue.Value,
-                JsonResult => JsonSerializer.Serialize(returnValue.Value),
+                StringResult stringResult => stringResult.Result,
+                JsonResult jsonResult => JsonSerializer.Serialize(jsonResult),
             };
         }
         catch (Exception ex)
@@ -67,7 +57,7 @@ public class Function
 
     private object[] ParseArguments(string arguments)
     {
-        if (_method is null)
+        if (Delegate is null)
         {
             throw new Exception("Method is null. Please ensure that the function is properly registered.");
         }
@@ -77,10 +67,10 @@ public class Function
             throw new Exception("Failed to parse arguments");
         }
 
-        object[] parsedArguments = new object[_method.GetParameters().Length];
+        object[] parsedArguments = new object[Delegate.Method.GetParameters().Length];
 
         int index = 0;
-        foreach (var parameter in _method.GetParameters())
+        foreach (var parameter in Delegate.Method.GetParameters())
         {
             string parameterName = parameter.Name;
 
