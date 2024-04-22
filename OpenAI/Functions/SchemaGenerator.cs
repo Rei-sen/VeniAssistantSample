@@ -1,125 +1,66 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
+﻿using System.Reflection;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-using OpenAI.Common;
 
 namespace OpenAI.Functions;
 
-internal class SchemaGenerator
+public class SchemaGenerator
 {
-    public static Function GenerateSchema(Delegate @delegate)
+    private static readonly IDictionary<Type, string> TypeDict = new Dictionary<Type, string>
     {
-        var method = @delegate.Method;
-        var functionAttribute = method.GetCustomAttribute<FunctionDefinitionAttribute>();
-        var functionName = functionAttribute?.Name ?? method.Name;
-        var functionDescription = functionAttribute?.Description;
+        { typeof(string), "string" },
+        { typeof(int), "integer" },
+        { typeof(double), "number" },
+        { typeof(bool), "boolean" }
+    };
 
-        var properties = new JsonObject();
-        var propertiesInfos = method.GetParameters();
-        var requiredParameters = new JsonArray();
+    public static (string Name, string? Description) GetNameAndDescription(Delegate del)
+    {
+        var method = del.Method;
+        var attr = method.GetCustomAttribute<FunctionDefinitionAttribute>();
+        return (attr?.Name ?? method.Name, attr?.Description);
+    }
+    
+    public static JsonObject GetParameterSchema(Delegate del)
+    {
+        var paramsJsonObj = new JsonObject();
+        var requiredParamsJsonArray = new JsonArray();
 
-        foreach (var parameterInfo in propertiesInfos)
+        foreach (var paramInfo in del.Method.GetParameters())
         {
-            var parameterAttribute = parameterInfo.GetCustomAttribute<FunctionParameterAttribute>();
-            var parameterName = parameterInfo.Name;
-
-            if (parameterName is null)
-            {
-                throw new InvalidOperationException("Parameter name is required");
-            }
-
-            var parameterType = parameterInfo.ParameterType;
-
-            var parameterObject = new JsonObject();
-            parameterObject["type"] = GetJsonType(parameterType);
-            parameterObject["description"] = parameterAttribute?.Description;
-            if (parameterType.IsEnum)
-            {
-                var enumValues = Enum.GetNames(parameterType);
-                var enumNode = new JsonArray();
-                foreach (var enumValue in enumValues)
-                {
-                    enumNode.Add(enumValue);
-                }
-                parameterObject["enum"] = enumNode;
-            }
-
-            properties[parameterName] = parameterObject;
-
-            if (!parameterInfo.HasDefaultValue)
-            {
-                requiredParameters.Add(parameterName);
-            }
+            var paramName = paramInfo.Name ?? throw new InvalidOperationException("Parameter name is required");
+            paramsJsonObj[paramName] = GenerateParamJsonObj(paramInfo);
+            if (!paramInfo.HasDefaultValue) requiredParamsJsonArray.Add(paramName);
         }
 
-        var parameters = new JsonObject();
-        parameters["type"] = "object";
-        parameters["properties"] = properties;
-        parameters["required"] = requiredParameters;
-
-        var function = new Function
+        return new () 
         {
-            Name = functionName,
-            Description = functionDescription,
-            Parameters = parameters,
-            Delegate = @delegate
+            { "type", "object" },
+            { "properties", paramsJsonObj },
+            { "required", requiredParamsJsonArray }
         };
-
-        return function;
     }
 
-    private static JsonNode GetJsonType(Type type)
+
+    private static JsonObject GenerateParamJsonObj(ParameterInfo paramInfo)
     {
-        if (type == typeof(string))
-        {
-            return "string";
-        }
-        else if (type == typeof(int))
-        {
-            return "integer";
-        }
-        else if (type == typeof(double))
-        {
-            return "number";
-        }
-        else if (type == typeof(bool))
-        {
-            return "boolean";
-        }
-        else if (type.IsEnum)
-        {
-            return "string";
-        }
-        //else if (type.IsClass || type.IsValueType)
-        //{
-        //    var properties = new JsonObject();
-        //    var propertyInfos = type.GetProperties();
-        //    foreach (var propertyInfo in propertyInfos)
-        //    {
-        //        var propertyName = propertyInfo.Name;
-        //        var propertyType = propertyInfo.PropertyType;
+        var attr = paramInfo.GetCustomAttribute<FunctionParameterAttribute>();
+        var paramType = paramInfo.ParameterType;
+        var typeStr = TypeDict.ContainsKey(paramType) ? TypeDict[paramType] : (paramType.IsEnum ? "string" : "unknown");
 
-        //        var propertyObject = new JsonObject();
-        //        propertyObject["type"] = GetJsonType(propertyType);
-
-        //        properties[propertyName] = propertyObject;
-        //    }
-        //    return new JsonObject
-        //    {
-        //        ["type"] = "object",
-        //        ["properties"] = properties,
-        //        ["required"] = new JsonArray(propertyInfos.Select(p => p.Name))
-        //    };
-        //}
-        else
+        var jsonObj = new JsonObject
         {
-            return "unknown";
-            throw new InvalidOperationException($"Unknown type {type}");
+            { "type", typeStr },
+            { "description", attr?.Description }
+        };
+
+        if (paramType.IsEnum)
+        {
+            var jsonArray = new JsonArray();
+            foreach (var name in Enum.GetNames(paramType))
+                jsonArray.Add(name);
+            jsonObj["enum"] = jsonArray;
         }
+
+        return jsonObj;
     }
 }

@@ -9,5 +9,5 @@ public class Tool
     [JsonPropertyName("type")]
     public required ToolType Type { get; set; }
     [JsonPropertyName("function")]
-    public Function? Function { get; set; }
+    public FunctionDescriptor? Function { get; set; }
 }

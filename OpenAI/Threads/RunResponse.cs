@@ -68,21 +68,14 @@ public class RunResponse
     public string? ResponseFormat { get; set; }
 
 
+    // todo: cancellationToken should be passed down
     public async Task<string> InvokeToolCallAsync(ToolCall toolCall, CancellationToken cancellationToken = default)
     {
         if (toolCall.Type != ToolType.Function)
-        {
             throw new InvalidOperationException("Cannot invoke non-function tools.");
-        }
 
-        var tool = Tools.FirstOrDefault(t => t.Type == ToolType.Function &&
-                                             t.Function.Name == toolCall.Function.Name);
-        if (tool is null)
-        {
-            throw new InvalidOperationException($"Tool '{toolCall.Function.Name}' not found.");
-        }
-
-        return await Function.InvokeAsync(toolCall.Function).ConfigureAwait(false);
+        var result = await FunctionCallBroker.InvokeCallAsync(toolCall.Function).ConfigureAwait(false);
+        return result.Serialize();
     }
 
     public async Task<ToolOutput> GetToolOutputAsync(ToolCall toolCall, CancellationToken cancellationToken = default)

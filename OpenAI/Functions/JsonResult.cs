@@ -1,3 +1,9 @@
-﻿namespace OpenAI.Functions;
+﻿using System.Text.Json;
 
-public record JsonResult(object Result) : FunctionResult;
+namespace OpenAI.Functions;
+
+public record JsonResult(object Result) : FunctionResult
+{
+    public override string Serialize() =>
+        JsonSerializer.Serialize(Result);
+}
