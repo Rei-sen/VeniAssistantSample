@@ -10,11 +10,13 @@ namespace OpenAI.Threads;
 public class ThreadResponse
 {
     [JsonPropertyName("id")]
-    public required string ID { get; set; }
+    public required string Id { get; set; }
     [JsonPropertyName("object")]
     public required string ObjectName { get; set; }
     [JsonPropertyName("created_at")]
-    public required ulong CreatedAt { get; set; }
+    public required long CreatedAtUnix { get; set; }
+    [JsonIgnore]
+    public DateTime CreatedAt => DateTimeOffset.FromUnixTimeSeconds(CreatedAtUnix).DateTime;
     // tool_resources
 
     [JsonPropertyName("metadata")]

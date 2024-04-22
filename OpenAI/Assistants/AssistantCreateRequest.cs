@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using OpenAI.Common;
 
 namespace OpenAI.Assistants;
 
@@ -17,8 +18,8 @@ public class AssistantCreateRequest
     public string? Description { get; set; }
     [JsonPropertyName("instructions")]
     public string? Instructions { get; set; }
-    //[JsonPropertyName("tools")]
-    //public List<FunctionTool> Tools { get; set; } = new();
+    [JsonPropertyName("tools")]
+    public List<Tool> Tools { get; set; } = new();
     // tool resources
     [JsonPropertyName("metadata")]
     public Dictionary<string, string>? Metadata { get; set; }

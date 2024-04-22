@@ -11,5 +11,5 @@ namespace OpenAI.Threads;
 public class MessageListQuery : ListQuery
 {
     [JsonPropertyName("run_id")]
-    public string? RunID { get; set; }
+    public string? RunId { get; set; }
 }

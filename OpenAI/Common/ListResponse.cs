@@ -15,9 +15,9 @@ public class ListResponse<T>
     [JsonPropertyName("data")]
     public required List<T> Data { get; set; }
     [JsonPropertyName("first_id")]
-    public string? FirstID { get; set; }
+    public string? FirstId { get; set; }
     [JsonPropertyName("last_id")]
-    public string? LastID { get; set; }
+    public string? LastId { get; set; }
     [JsonPropertyName("has_more")]
     public bool HasMore { get; set; }
 }

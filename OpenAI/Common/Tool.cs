@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using OpenAI.Functions;
+using OpenAI.Threads;
 
 namespace OpenAI.Common;
 

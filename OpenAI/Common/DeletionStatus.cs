@@ -5,7 +5,7 @@ namespace OpenAI.Common;
 public class DeletionStatus
 {
     [JsonPropertyName("id")]
-    public required string ID { get; set; }
+    public required string Id { get; set; }
     [JsonPropertyName("object")]
     public required string ObjectName { get; set; }
     [JsonPropertyName("deleted")]

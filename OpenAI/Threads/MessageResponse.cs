@@ -5,26 +5,32 @@ namespace OpenAI.Threads;
 public class MessageResponse
 {
     [JsonPropertyName("id")]
-    public required string ID { get; set; }
+    public required string Id { get; set; }
     [JsonPropertyName("object")]
     public required string ObjectName { get; set; }
     [JsonPropertyName("created_at")]
     public required ulong CreatedAt { get; set; }
     [JsonPropertyName("assistant_id")]
-    public required string ThreadID { get; set; }
+    public required string ThreadId { get; set; }
     [JsonPropertyName("status")]
     public required string Status { get; set; }
     // incomplete details
     [JsonPropertyName("completed_at")]
-    public  ulong? CompletedAt { get; set; }
+    public long? CompletedAtUnix { get; set; }
+    [JsonIgnore]
+    public DateTime? CompletedAt => CompletedAtUnix.HasValue ? DateTimeOffset.FromUnixTimeSeconds(CompletedAtUnix.Value).DateTime : null;
     [JsonPropertyName("incomplete_at")]
-    public  ulong? IncompleteAt { get; set; }
+    public long? IncompleteAtUnix { get; set; }
+    [JsonIgnore]
+    public DateTime? IncompleteAt => IncompleteAtUnix.HasValue ? DateTimeOffset.FromUnixTimeSeconds(IncompleteAtUnix.Value).DateTime : null;
     [JsonPropertyName("role")]
-    public  string? Role { get; set; }
+    public string? Role { get; set; }
     [JsonPropertyName("content")]
     public required List<Content> Content { get; set; }
     [JsonPropertyName("assistant_id")]
-    public string? AssistantID { get; set; }
+    public string? AssistantId { get; set; }
+    [JsonPropertyName("run_id")]
+    public string? RunId { get; set; }
     [JsonPropertyName("attachments")]
     public List<Attachment>? Attachments { get; set; }
     [JsonPropertyName("metadata")]
