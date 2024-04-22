@@ -12,8 +12,9 @@ namespace OpenAI.Functions;
 
 internal class SchemaGenerator
 {
-    public static Function GenerateSchema(MethodInfo method)
+    public static Function GenerateSchema(Delegate @delegate)
     {
+        var method = @delegate.Method;
         var functionAttribute = method.GetCustomAttribute<FunctionDefinitionAttribute>();
         var functionName = functionAttribute?.Name ?? method.Name;
         var functionDescription = functionAttribute?.Description;
@@ -66,7 +67,7 @@ internal class SchemaGenerator
             Name = functionName,
             Description = functionDescription,
             Parameters = parameters,
-            _method = method
+            Delegate = @delegate
         };
 
         return function;
