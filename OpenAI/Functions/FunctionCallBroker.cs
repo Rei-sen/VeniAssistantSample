@@ -11,7 +11,14 @@ public static class FunctionCallBroker
     public static Function RegisterFunction(Delegate @delegate)
     {
         var function = new Function(@delegate);
-        _knownFunctions.Add(function.Descriptor.Name, function);
+        if (_knownFunctions.ContainsKey(function.Descriptor.Name))
+        {
+            _knownFunctions[function.Descriptor.Name] = function;
+        }
+        else
+        {
+            _knownFunctions.Add(function.Descriptor.Name, function);
+        }
         return function;
     }
 

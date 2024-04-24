@@ -64,7 +64,7 @@ public abstract class BaseEndpoint(OpenAIClient client)
         if (!response.IsSuccessStatusCode)
         {
             using var errorJson = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            var error = await JsonSerializer.DeserializeAsync<ErrorObject>(errorJson);
+            var error = await JsonSerializer.DeserializeAsync<ErrorObject>(errorJson, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (error is null)
                 throw new JsonException("Failed to deserialize error response");
             throw new ErrorResponseException(error!.ErrorDetails);

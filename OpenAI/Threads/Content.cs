@@ -6,7 +6,7 @@ namespace OpenAI.Threads;
 public class Content
 {
     [JsonPropertyName("type")]
-    public required ContentType Type { get; set; }
+    public required string Type { get; set; }
 
 
     [JsonPropertyName("text")]

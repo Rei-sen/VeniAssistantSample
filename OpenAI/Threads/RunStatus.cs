@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace OpenAI.Threads;
 
@@ -8,7 +9,7 @@ public enum RunStatus
     Queued,
     [EnumMember(Value = "in_progress")]
     InProgress,
-    [EnumMember(Value = "requres_action")]
+    [EnumMember(Value = "requires_action")]
     RequresAction,
     [EnumMember(Value = "cancelling")]
     Cancelling,

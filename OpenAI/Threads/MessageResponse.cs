@@ -10,10 +10,10 @@ public class MessageResponse
     public required string ObjectName { get; set; }
     [JsonPropertyName("created_at")]
     public required ulong CreatedAt { get; set; }
-    [JsonPropertyName("assistant_id")]
+    [JsonPropertyName("thread_id")]
     public required string ThreadId { get; set; }
     [JsonPropertyName("status")]
-    public required string Status { get; set; }
+    public string? Status { get; set; }
     // incomplete details
     [JsonPropertyName("completed_at")]
     public long? CompletedAtUnix { get; set; }

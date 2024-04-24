@@ -1,4 +1,5 @@
 ﻿using OpenAI.Assistants;
+using OpenAI.Moderations;
 using OpenAI.Threads;
 namespace OpenAI;
 
@@ -8,9 +9,10 @@ public class OpenAIClient : IDisposable
     internal string _apiKey;
     private bool disposedValue;
 
-    public string BaseUrl { get; set; } = "https://api.openai.com/v1/";
+    public string BaseUrl { get; set; } = "https://api.openai.com/v1";
 
     public AssistantsEndpoint Assistants { get; }
+    public ModerationsEndpoint Moderations { get; }
     public ThreadsEndpoint Threads { get; }
 
     public OpenAIClient(string apiKey)
@@ -22,6 +24,7 @@ public class OpenAIClient : IDisposable
         _httpClient.DefaultRequestHeaders.Add("OpenAI-Beta", "assistants=v2");
 
         Assistants = new(this);
+        Moderations = new(this);
         Threads = new(this);
     }
 

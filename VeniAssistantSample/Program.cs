@@ -5,6 +5,7 @@ using OpenAI.Assistants;
 using OpenAI.Common;
 using OpenAI.Threads;
 using OpenAI.Functions;
+using static OpenAI.Functions.FunctionCallBroker;
 
 namespace VeniAssistantSample;
 public class Program
@@ -18,6 +19,8 @@ public class Program
         var apiKey = config["OpenAiApiKey"] ?? "";
 
         var openAIClient = new OpenAIClient(apiKey);
+
+        var f = OpenAI.Functions.FunctionCallBroker.RegisterFunction(VenuesAPIQuery);
 
         Console.WriteLine("Type 'exit' to quit.");
 
@@ -37,7 +40,7 @@ public class Program
                 runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, startRun.Id);
             }
             var messages = await openAIClient.Threads.ListMessagesAsync(thread.Id);
-            Console.WriteLine(messages.Data.First().Content);
+            Console.WriteLine(messages.Data.First().Content.First().Text.Value);
         }
 
         while (true)
@@ -55,23 +58,36 @@ public class Program
                 Content = input
             });
 
-            var runResponse = await openAIClient.Threads.CreateRunAsync(thread.Id, new() { 
-                AssistantId = veniKi.Id 
+            var runResponse = await openAIClient.Threads.CreateRunAsync(thread.Id, new()
+            {
+                AssistantId = veniKi.Id
             });
-            while (runResponse.Status != RunStatus.Completed)
+
+            while (true)
             {
                 if (runResponse.Status == RunStatus.RequresAction)
                 {
-                    //foreach (var toolCall in runResponse.RequiredAction.SubmitToolOutputs.ToolCalls)
-                    //{
-                    //    Console.WriteLine("Tool call: " + toolCall.);
-                    //    foreach (var output in toolCall.Outputs)
-                    //    {
-                    //        Console.WriteLine("Output: " + output);
-                    //    }
-                    //}
+                    var outputs = await runResponse.GetToolOutputsAsync(runResponse.RequiredAction.SubmitToolOutputs.ToolCalls);
+                    var request = new RunSubmitToolOutputsRequest
+                    {
+                        ToolOutputs = outputs.ToList()
+                    };
+                    runResponse = await openAIClient.Threads.SubmitToolOutputsAsync(thread.Id, runResponse.Id, request);
                 }
+                else if (runResponse.Status == RunStatus.Failed)
+                {
+                    Console.WriteLine("Run failed: " + runResponse.LastError?.Message);
+                    break;
+                }
+                else if (runResponse.Status == RunStatus.Completed)
+                {
+                    var messages = await openAIClient.Threads.ListMessagesAsync(thread.Id);
+                    Console.WriteLine(messages.Data.First().Content.First().Text.Value);
+                    break;
+                }
+
                 runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, runResponse.Id);
+
             }
         }
     }
@@ -95,7 +111,7 @@ public class Program
     }
 
     [FunctionDefinition(name: "VenuesAPIQueryParameters", description: "Querry ffxiv venues for list of venues.")]
-    public static string VenuesAPIQueryParameters(
+    public static async Task<FunctionResult> VenuesAPIQuery(
         [FunctionParameter("name of venue")] string name,
         [FunctionParameter("Venue manager's name")] string manager,
         [FunctionParameter("Name of the datacenter where the venue is located")] DataCenter dataCenter,
@@ -107,7 +123,7 @@ public class Program
         [FunctionParameter("Whether the venue is open whithin a week")] bool withinWeek = false
     )
     {
-        return "";
+        return new StringResult("");
     }
 
     public static async Task<AssistantResponse> GetVeniKiOrCreateNew(OpenAIClient openAIClient)
@@ -129,9 +145,12 @@ public class Program
             }
         } while (hasMore);
 
+        var tools = new List<Tool>();
+        var func = OpenAI.Functions.FunctionCallBroker.RegisterFunction(VenuesAPIQuery);
+        tools.Add(new Tool { Type = ToolType.Function, Function = func.Descriptor });
         var request = new AssistantCreateRequest
         {
-            Model = "gpt-4",
+            Model = "gpt-4-turbo",
             Name = "VeniKi",
             Temperature = 1.6,
             Instructions = "FFXIV Venues is a website dedicated to providing a " +
@@ -168,7 +187,8 @@ public class Program
                 "After you show a venue to the user, you must call the `post_shown_venue_id` " +
                 "function to make sure the app you're working inside properly displays it. " +
                 "You don't need to post any additional information about the venue, other " +
-                "than calling the function, as the information will be redundant."
+                "than calling the function, as the information will be redundant.",
+            Tools = tools
         };
         var createdAssistant = await openAIClient.Assistants.CreateAssistantAsync(request);
         return createdAssistant;

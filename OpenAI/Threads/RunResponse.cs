@@ -9,19 +9,20 @@ namespace OpenAI.Threads;
 public class RunResponse
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public required string Id { get; set; }
     [JsonPropertyName("object")]
-    public string ObjectName { get; set; }
+    public required string ObjectName { get; set; }
     [JsonPropertyName("created_at")]
-    public long CreatedAtUnix { get; set; }
+    public required long CreatedAtUnix { get; set; }
     [JsonIgnore]
     public DateTime CreatedAt => DateTimeOffset.FromUnixTimeSeconds(CreatedAtUnix).DateTime;
     [JsonPropertyName("thread_id")]
-    public string ThreadId { get; set; }
+    public required string ThreadId { get; set; }
     [JsonPropertyName("assistant_id")]
-    public string AssistantId { get; set; }
+    public required string AssistantId { get; set; }
+    [JsonConverter(typeof(JsonEnumConverter<RunStatus>))]
     [JsonPropertyName("status")]
-    public RunStatus Status { get; set; }
+    public required RunStatus Status { get; set; }
     [JsonPropertyName("required_action")]
     public RequiredAction? RequiredAction { get; set; }
     [JsonPropertyName("last_error")]
