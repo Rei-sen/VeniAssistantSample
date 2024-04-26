@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenAI.Threads;
 
-internal class JsonEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum : Enum
+public class JsonEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum : Enum
 {
     private static readonly Dictionary<TEnum, string> EnumValueMap = new();
     private static readonly Dictionary<string, TEnum> StringValueMap = new();
@@ -38,7 +38,7 @@ internal class JsonEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum : Enu
                 return value;
             }
         }
-        throw new JsonException($"Unable to convert value '{reader.GetString()}' to RunStatus.");
+        throw new JsonException($"Unable to convert value '{reader.GetString()}' to {typeof(TEnum).Name}.");
     }
 
     public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options)

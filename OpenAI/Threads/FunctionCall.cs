@@ -11,14 +11,15 @@ public class FunctionCall
 
     public object?[] ParseArguments(ParameterInfo[] parameters)
     {
-        var argValues = JsonSerializer.Deserialize<Dictionary<string, object>>(Arguments)
-                        ?? throw new Exception("Failed to parse arguments");
+        var jsonDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(Arguments)
+                      ?? throw new Exception("Failed to parse arguments");
 
-        return parameters.Select((param, i) =>
-            argValues.TryGetValue(param.Name!, out var argValue)
-                ? argValue
+        return parameters.Select(param =>
+            jsonDict.TryGetValue(param.Name!, out var jsonElement)
+                ? JsonSerializer.Deserialize(jsonElement.GetRawText(), param.ParameterType)
                 : param.HasDefaultValue
                     ? param.DefaultValue
-                    : throw new Exception($"Missing value for parameter '{param.Name}'")).ToArray();
+                    : throw new Exception($"Missing value for parameter '{param.Name}'")
+        ).ToArray();
     }
 }

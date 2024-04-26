@@ -6,6 +6,8 @@ using OpenAI.Common;
 using OpenAI.Threads;
 using OpenAI.Functions;
 using static OpenAI.Functions.FunctionCallBroker;
+using System.Text.Json.Serialization;
+using System.Runtime.Serialization;
 
 namespace VeniAssistantSample;
 public class Program
@@ -27,21 +29,21 @@ public class Program
         var veniKi = await GetVeniKiOrCreateNew(openAIClient);
 
         var thread = await openAIClient.Threads.CreateThreadAsync(new ThreadCreateRequest { });
-        {
-            var runRequest = new RunCreateRequest
-            {
-                AssistantId = veniKi.Id,
-                AdditionalInstructions = "Introduce yourself to the user and explain what you can do for them. Be brief."
-            };
-            var startRun = await openAIClient.Threads.CreateRunAsync(thread.Id, runRequest);
-            var runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, startRun.Id);
-            while (runResponse.Status != RunStatus.Completed)
-            {
-                runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, startRun.Id);
-            }
-            var messages = await openAIClient.Threads.ListMessagesAsync(thread.Id);
-            Console.WriteLine(messages.Data.First().Content.First().Text.Value);
-        }
+        //{
+        //    var runRequest = new RunCreateRequest
+        //    {
+        //        AssistantId = veniKi.Id,
+        //        AdditionalInstructions = "Introduce yourself to the user and explain what you can do for them. Be brief."
+        //    };
+        //    var startRun = await openAIClient.Threads.CreateRunAsync(thread.Id, runRequest);
+        //    var runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, startRun.Id);
+        //    while (runResponse.Status != RunStatus.Completed)
+        //    {
+        //        runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, startRun.Id);
+        //    }
+        //    var messages = await openAIClient.Threads.ListMessagesAsync(thread.Id);
+        //    Console.WriteLine(messages.Data.First().Content.First().Text.Value);
+        //}
 
         while (true)
         {
@@ -87,40 +89,23 @@ public class Program
                 }
 
                 runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, runResponse.Id);
-
+                Thread.Sleep(500);
             }
         }
     }
 
-    public enum DataCenter
-    {
-        Chaos,
-        Light,
-        Aether,
-        Primal,
-        Crystal
-    }
-
-    public enum World
-    {
-        Omega,
-        Ragnarok,
-        Cerberus,
-        Louisoix,
-        Moogle
-    }
-
+    
     [FunctionDefinition(name: "VenuesAPIQueryParameters", description: "Querry ffxiv venues for list of venues.")]
     public static async Task<FunctionResult> VenuesAPIQuery(
-        [FunctionParameter("name of venue")] string name,
-        [FunctionParameter("Venue manager's name")] string manager,
-        [FunctionParameter("Name of the datacenter where the venue is located")] DataCenter dataCenter,
-        [FunctionParameter("The world where the venue is located")] World world,
-        [FunctionParameter("',' separated list of tags")] string tags,
-        [FunctionParameter("Whether the venue has a banner")] bool hasBanner,
-        [FunctionParameter("Whether the venue is approved")] bool isApproved,
-        [FunctionParameter("Whether the venue is open right now")] bool isOpen,
-        [FunctionParameter("Whether the venue is open whithin a week")] bool withinWeek = false
+        [FunctionParameter("name of venue")] string? name = null,
+        [FunctionParameter("Venue manager's name")] string? manager = null,
+        [FunctionParameter("Name of the datacenter where the venue is located")] string? dataCenter = null,
+        [FunctionParameter("The world where the venue is located")] string? world = null,
+        [FunctionParameter("',' separated list of tags")] string? tags = null,
+        [FunctionParameter("Whether the venue has a banner")] bool? hasBanner = null,
+        [FunctionParameter("Whether the venue is approved")] bool? isApproved = null,
+        [FunctionParameter("Whether the venue is open right now")] bool? isOpen = null,
+        [FunctionParameter("Whether the venue is open whithin a week")] bool? withinWeek = null
     )
     {
         return new StringResult("");
