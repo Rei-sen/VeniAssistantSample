@@ -29,21 +29,6 @@ public class Program
         var veniKi = await GetVeniKiOrCreateNew(openAIClient);
 
         var thread = await openAIClient.Threads.CreateThreadAsync(new ThreadCreateRequest { });
-        //{
-        //    var runRequest = new RunCreateRequest
-        //    {
-        //        AssistantId = veniKi.Id,
-        //        AdditionalInstructions = "Introduce yourself to the user and explain what you can do for them. Be brief."
-        //    };
-        //    var startRun = await openAIClient.Threads.CreateRunAsync(thread.Id, runRequest);
-        //    var runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, startRun.Id);
-        //    while (runResponse.Status != RunStatus.Completed)
-        //    {
-        //        runResponse = await openAIClient.Threads.RetrieveRunAsync(thread.Id, startRun.Id);
-        //    }
-        //    var messages = await openAIClient.Threads.ListMessagesAsync(thread.Id);
-        //    Console.WriteLine(messages.Data.First().Content.First().Text.Value);
-        //}
 
         while (true)
         {
@@ -69,7 +54,7 @@ public class Program
             {
                 if (runResponse.Status == RunStatus.RequresAction)
                 {
-                    var outputs = await runResponse.GetToolOutputsAsync(runResponse.RequiredAction.SubmitToolOutputs.ToolCalls);
+                    var outputs = await runResponse.GetToolOutputsAsync(runResponse.RequiredAction!.SubmitToolOutputs.ToolCalls);
                     var request = new RunSubmitToolOutputsRequest
                     {
                         ToolOutputs = outputs.ToList()
@@ -132,7 +117,7 @@ public class Program
 
         var tools = new List<Tool>();
         var func = OpenAI.Functions.FunctionCallBroker.RegisterFunction(VenuesAPIQuery);
-        tools.Add(new Tool { Type = ToolType.Function, Function = func.Descriptor });
+        tools.Add(new Tool { Type = ToolType.Function, Function = func });
         var request = new AssistantCreateRequest
         {
             Model = "gpt-4-turbo",

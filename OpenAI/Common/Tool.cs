@@ -10,5 +10,5 @@ public class Tool
     [JsonConverter(typeof(JsonEnumConverter<ToolType>))]
     public required ToolType Type { get; set; }
     [JsonPropertyName("function")]
-    public FunctionDescriptor? Function { get; set; }
+    public Function? Function { get; set; }
 }
